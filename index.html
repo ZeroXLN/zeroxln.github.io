@@ -165,6 +165,334 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="cn">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/04/10/%E5%88%9D%E8%AF%86syslog/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="ZeroX">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zerohacker.me">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/04/10/%E5%88%9D%E8%AF%86syslog/" class="post-title-link" itemprop="url">初识syslog</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Veröffentlicht am</span>
+              
+
+              <time title="Erstellt: 2020-04-10 09:42:43 / Geändert am: 10:30:46" itemprop="dateCreated datePublished" datetime="2020-04-10T09:42:43+08:00">2020-04-10</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>最近在学习syslog，国内写的很多东西非常零散，看得人云里雾里的，从<a href="https://www.paessler.com/it-explained/syslog" target="_blank" rel="noopener">https://www.paessler.com/it-explained/syslog</a>  找了个文档，写的挺详细的，自己翻译了一下，分享出来共同学习。</p>
+<h4 id="什么是syslog"><a href="#什么是syslog" class="headerlink" title="什么是syslog"></a>什么是syslog</h4><p>简介：</p>
+<ul>
+<li>syslog 表示 <font color='red'>System Logging Protocol</font> 系统日志协议</li>
+<li>是一种标准协议，用于发送系统日志或者事件信息到一个特定的服务器上（syslog服务器）</li>
+<li>用途：主要用于从各种不同的设备中收集各种设备日志到一个中央位置进行监控和查看</li>
+</ul>
+<p>普适性：</p>
+<ul>
+<li>syslog协议存在在大多数网络设备上，比如路由器、交换机、防火墙，甚至一些打印机和扫描器上。</li>
+<li>在基于Unix、Linux的系统上和很多web服务器（包括Apache）上也有syslog协议</li>
+<li>Windows系统默认没有安装syslog，而是使用自己的Windows Event Log（Windows事件日志）。可以使用syslog协议通过第三方实用程序或其他配置转发这些事件。</li>
+</ul>
+<h4 id="syslog组件"><a href="#syslog组件" class="headerlink" title="syslog组件"></a>syslog组件</h4><blockquote>
+<p>在任何给定的设备上，系统都会根据变化的条件生成各种事件。这些事件通常在本地记录，管理员可以对其进行查看和分析。但是，在同等数量的路由器，交换机和系统上监视大量日志将既耗时又不切实际。Syslog通过将这些事件转发到集中式服务器来帮助解决此问题。</p>
+</blockquote>
+<h4 id="syslog传输"><a href="#syslog传输" class="headerlink" title="syslog传输"></a>syslog传输</h4><p>通常，syslog在514端口上使用UDP协议，也能配置成一个任意端口。此外，某些设备将使用TCP 1468发送系统日志数据以获取确认的消息传递。</p>
+<p>syslog报文传输是异步的。路由器、交换机或者服务器自身可以配置去产生syslog message。与其他监视协议（例如SNMP）不同，没有机制可以轮询syslog数据。<br>在某些实现中，SNMP可用于远程设置或修改syslog参数。</p>
+<p>syslog message 格式<br>syslog message包括三个部分:</p>
+<ul>
+<li>PRI: 一个计算的优先值</li>
+<li>HEADER: 带有识别信息</li>
+<li>MSG： message自身</li>
+</ul>
+<p>通过syslog协议发送的PRI数据主要由两个值计算而来，PRI主要是为了对message进行分类</p>
+<ul>
+<li>Facility value：设备值或设施值。<ul>
+<li>这个值要么是15个预定义的值之一，要么是在16到23的情况下是各种本地定义的值。</li>
+<li>作用：用来区分message的类型或者判断哪个系统产生的这个事件。</li>
+</ul>
+</li>
+<li>Severity Value：严重度值<ul>
+<li>syslog消息的第二个标签将消息的重要性或严重性按照从0到7的数字代码进行分类。</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>注：两个标签的值都没有硬性定义。因此，由系统或应用程序确定如何记录事件（例如，作为警告，通知或其他方式）以及在哪个设施上记录事件。在同一应用程序或服务中，相对于特定过程，较低的数字应对应于更严重的问题（数字越小，问题越严重）</p>
+</blockquote>
+<p>将这两个值合并以生成随消息发送的优先级值PRI。<br>优先级值是通过将设施值Facility value乘以8，然后将严重性值加到结果中来计算的。<br><strong>PRI越低，优先级越高。</strong></p>
+<p><code>(Facility Value * 8) + Severity Value = PRI</code></p>
+<p>这样，无论日志警报的严重性如何，内核消息接收的值都比日志警报的值低（优先级更高）。<br>数据包中的其他标识符包括主机名，IP地址，进程ID，应用程序名称和消息的时间戳。</p>
+<h4 id="syslog-message示例"><a href="#syslog-message示例" class="headerlink" title="syslog message示例"></a>syslog message示例</h4><h4 id="syslog-server"><a href="#syslog-server" class="headerlink" title="syslog server"></a>syslog server</h4><p>syslog server也叫做syslog collector或者syslog receiver<br>设备产生syslog message，发送给syslog collector。目的syslog服务器必须要在设备中进行配置，或者用命令行配置或者用配置文件配置。一旦配置好之后，所有的syslog数据就会发送给指定的syslog服务器。syslog协议内没有机制可让其他服务器请求syslog数据。</p>
+<p>syslog协议可以生成很多消息。<br>Syslog仅在生成消息时就转发消息。<br>因此，系统日志服务器最重要的功能是能够正确过滤传入的系统日志数据并对其做出反应。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="cn">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/20/%E5%A6%82%E4%BD%95%E6%88%90%E4%B8%BA%E4%B8%80%E5%90%8D%E6%9B%B4%E5%A5%BD%E7%9A%84%E8%BD%AF%E4%BB%B6%E6%9E%B6%E6%9E%84%E5%B8%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="ZeroX">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zerohacker.me">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/01/20/%E5%A6%82%E4%BD%95%E6%88%90%E4%B8%BA%E4%B8%80%E5%90%8D%E6%9B%B4%E5%A5%BD%E7%9A%84%E8%BD%AF%E4%BB%B6%E6%9E%B6%E6%9E%84%E5%B8%88/" class="post-title-link" itemprop="url">如何成为一名更好的软件架构师</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Veröffentlicht am</span>
+              
+
+              <time title="Erstellt: 2020-01-20 11:21:40 / Geändert am: 11:55:18" itemprop="dateCreated datePublished" datetime="2020-01-20T11:21:40+08:00">2020-01-20</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="如何成为一名更好的软件架构师"><a href="#如何成为一名更好的软件架构师" class="headerlink" title="如何成为一名更好的软件架构师"></a>如何成为一名更好的软件架构师</h2><p>很多年以前，我曾被追问：“你是如何成为一名软件架构师的？” 我们讨论了成为一名软件架构师所必要的技能，经验以及积累知识所需的时间和奉献精神。此外，我回顾了在成为一名架构师的路上我所走过的路，我所使用过的技术以及从我的职业和非职业生涯中所学到的一切。</p>
+<h3 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h3><hr>
+<ul>
+<li>什么是软件架构师</li>
+<li>架构层级</li>
+<li>软件架构的典型活动</li>
+<li>软件架构的重要技巧</li>
+<li>架构师技术路线图</li>
+</ul>
+<h3 id="什么是软件架构师"><a href="#什么是软件架构师" class="headerlink" title="什么是软件架构师"></a>什么是软件架构师</h3><p>在正式开始之前，我们先来看两个概念：</p>
+<ul>
+<li>软件架构师是一位软件专家，他可以进行高层设计选择并决定技术标准，包括软件编码标准，工具和平台。这位首席专家被称为首席架构师。（来源：维基百科：软件架构）</li>
+<li>软件体系结构是系统的基本组织，由其组件，它们之间的相互关系以及与环境的关系以及确定系统设计和演进的原理来表示。（来源：软件架构手册）</li>
+</ul>
+<h3 id="架构层级"><a href="#架构层级" class="headerlink" title="架构层级"></a>架构层级</h3><p>架构可以在很多抽象层级上进行分类。架构层级影响着必要技巧的重要性。存在很多可能的分类，我本人比较喜欢按照以下三个层级来划分：</p>
+<ul>
+<li>应用级：架构的最低层级。只关注单个应用程序。非常详细的底层设计。沟通通常发生在一个开发团队之中</li>
+<li>解决方案级：架构的中间层。关注满足业务需求（业务级解决方案）的一个或多个应用程序。很多高层次的底层设计。交流主要发生在多个开发团队之间。</li>
+<li>企业级：架构的最高级别。关注多个解决方案。高级抽象设计，需要用解决方案级结构或者应用级架构对其进行详细说明。交流贯穿整个组织。</li>
+</ul>
+<p>有时候架构师也被视为不同利益相关者之间的“胶水”。三个例子：</p>
+<ul>
+<li>横向：桥接业务与开发人员或不同开发团队之间的沟通。</li>
+<li>纵向：桥接开发者与管理者之间的沟通。</li>
+<li>技术：集成不同的技术和应用程序</li>
+</ul>
+<h3 id="软件架构的典型活动"><a href="#软件架构的典型活动" class="headerlink" title="软件架构的典型活动"></a>软件架构的典型活动</h3><p>要了解架构师所需的必要技能，我们首先需要了解典型活动。以下（非最终）清单是从我的角度给出的一些最重要的活动：</p>
+<ul>
+<li>定义并确定开发技术和平台</li>
+<li>定义开发标准</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="cn">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/19/Structure-and-Interpretation-of-Computer-Programs-second-edition/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="ZeroX">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zerohacker.me">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/01/19/Structure-and-Interpretation-of-Computer-Programs-second-edition/" class="post-title-link" itemprop="url">Structure and Interpretation of Computer Programs [second edition]</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Veröffentlicht am</span>
+
+              <time title="Erstellt: 2020-01-19 16:08:39" itemprop="dateCreated datePublished" datetime="2020-01-19T16:08:39+08:00">2020-01-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Bearbeitet am</span>
+                <time title="Geändert am: 2020-01-20 11:37:07" itemprop="dateModified" datetime="2020-01-20T11:37:07+08:00">2020-01-20</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="计算机程序的构造与解释-第2版"><a href="#计算机程序的构造与解释-第2版" class="headerlink" title="计算机程序的构造与解释[第2版]"></a>计算机程序的构造与解释[第2版]</h1><h2 id="Chapter-1-Building-Abstraction-with-Procedures"><a href="#Chapter-1-Building-Abstraction-with-Procedures" class="headerlink" title="Chapter 1 Building Abstraction with Procedures"></a>Chapter 1 Building Abstraction with Procedures</h2><p>1.1 程序的元素<br>每种语言在实现上基本都包含以下机制：</p>
+<ul>
+<li>基本表达式</li>
+<li>组合的方式</li>
+<li>抽象方式</li>
+</ul>
+<p>编程中主要处理两种元素：<strong>procedures</strong> 和 <strong>数据</strong>。 数据是我们所要操作的对象，procedure是操作这些数据的规则的描述。每种语言都应该能够描述基本数据和基本过程，也应该有组合和抽象这些数据、procedure的方法。</p>
+<p>1.1.1 Expressions</p>
+<p>😰</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="cn">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/17/ICS%E5%85%A5%E9%97%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="ZeroX">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zerohacker.me">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/01/17/ICS%E5%85%A5%E9%97%A8/" class="post-title-link" itemprop="url">ICS入门</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Veröffentlicht am</span>
+
+              <time title="Erstellt: 2020-01-17 18:48:19" itemprop="dateCreated datePublished" datetime="2020-01-17T18:48:19+08:00">2020-01-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Bearbeitet am</span>
+                <time title="Geändert am: 2020-01-20 11:37:07" itemprop="dateModified" datetime="2020-01-20T11:37:07+08:00">2020-01-20</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="ICS-入门"><a href="#ICS-入门" class="headerlink" title="ICS 入门"></a>ICS 入门</h2>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="cn">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/17/Electron%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E6%B7%98%E5%AE%9D%E9%95%9C%E5%83%8F/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -414,9 +742,13 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-count">7</span>
           <span class="site-state-item-name">Artikel</span>
         </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">schlagwörter</span>
       </div>
   </nav>
 </div>
