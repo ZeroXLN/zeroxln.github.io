@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="Memory Layout of C Programs C程序的典型内存表示分为如下几个区：  Text segment 初始化数据区 未初始化数据区 栈区 堆区  Text segment文本段，也称为代码段或简单地称为文本，是程序在目标文件或内存中的一个部分。其中包含可执行指令。作为一段内存区域，文本段可以放在堆或堆栈的下面，以防止堆和堆栈溢出覆盖它。 通常，文本段是可共享的，因此对于经常执行">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Memory Layout of C Programs">
+<meta property="og:url" content="http://yoursite.com/2020/06/22/Memory-Layout-of-C-Programs/index.html">
+<meta property="og:site_name" content="zerohacker.me">
+<meta property="og:description" content="Memory Layout of C Programs C程序的典型内存表示分为如下几个区：  Text segment 初始化数据区 未初始化数据区 栈区 堆区  Text segment文本段，也称为代码段或简单地称为文本，是程序在目标文件或内存中的一个部分。其中包含可执行指令。作为一段内存区域，文本段可以放在堆或堆栈的下面，以防止堆和堆栈溢出覆盖它。 通常，文本段是可共享的，因此对于经常执行">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://media.geeksforgeeks.org/wp-content/uploads/memoryLayoutC.jpg">
+<meta property="og:image" content="c:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623103610753.png">
+<meta property="og:image" content="c:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623103936264.png">
+<meta property="og:image" content="c:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623110357519.png">
+<meta property="og:image" content="c:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623110617166.png">
+<meta property="og:image" content="c:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623143312038.png">
+<meta property="og:image" content="d:/图书馆/visio绘图/Function%20call%20memory%20layout.png">
+<meta property="article:published_time" content="2020-06-22T09:55:46.000Z">
+<meta property="article:modified_time" content="2020-06-23T07:07:46.539Z">
+<meta property="article:author" content="ZeroX">
+<meta property="article:tag" content="内存">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://media.geeksforgeeks.org/wp-content/uploads/memoryLayoutC.jpg">
+
+<link rel="canonical" href="http://yoursite.com/2020/06/22/Memory-Layout-of-C-Programs/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Memory Layout of C Programs | zerohacker.me</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zerohacker.me</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/06/22/Memory-Layout-of-C-Programs/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="ZeroX">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zerohacker.me">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Memory Layout of C Programs
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-06-22 17:55:46" itemprop="dateCreated datePublished" datetime="2020-06-22T17:55:46+08:00">2020-06-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-23 15:07:46" itemprop="dateModified" datetime="2020-06-23T15:07:46+08:00">2020-06-23</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="Memory-Layout-of-C-Programs"><a href="#Memory-Layout-of-C-Programs" class="headerlink" title="Memory Layout of C Programs"></a>Memory Layout of C Programs</h1><p><img src="https://media.geeksforgeeks.org/wp-content/uploads/memoryLayoutC.jpg" alt="img"></p>
+<p>C程序的典型内存表示分为如下几个区：</p>
+<ol>
+<li>Text segment</li>
+<li>初始化数据区</li>
+<li>未初始化数据区</li>
+<li>栈区</li>
+<li>堆区</li>
+</ol>
+<h4 id="Text-segment"><a href="#Text-segment" class="headerlink" title="Text segment"></a>Text segment</h4><p>文本段，也称为代码段或简单地称为文本，是程序在目标文件或内存中的一个部分。其中包含可执行指令。<br>作为一段内存区域，文本段可以放在堆或堆栈的下面，以防止堆和堆栈溢出覆盖它。</p>
+<p>通常，文本段是可共享的，因此对于经常执行的程序（如ext编辑器、C编译器、shell等），只需要在内存中有一个副本。此外，文本段通常是只读的，以防止程序意外地修改其指令</p>
+<blockquote>
+<p>A text segment , also known as a code segment or simply as text, is one of the sections of a program in an object file or in memory, which contains executable instructions.</p>
+<p>As a memory region, a text segment may be placed below the heap or stack in order to prevent heaps and stack overflows from overwriting it.</p>
+<p>Usually, the text segment is sharable so that only a single copy needs to be in memory for frequently executed programs, such as text editors, the C compiler, the shells, and so on. Also, the text segment is often read-only, to prevent a program from accidentally modifying its instructions.</p>
+</blockquote>
+<h4 id="Initialized-Data-Segment"><a href="#Initialized-Data-Segment" class="headerlink" title="Initialized Data Segment"></a>Initialized Data Segment</h4><p>初始化的数据段，通常简称为数据段。数据段是程序虚拟地址空间的一部分，它包含由程序员初始化的全局变量和静态变量<br>注意，数据段不是只读的，因为变量的值可以在运行时更改<br>此段可进一步分为初始化只读区和初始化读写区<br>例如，由C中的char sl=“hello world”定义的全局字符串和main（e global）之外的int debug=1这样的C语句将存储在初始化的读写区域中。而像const char*string=“hello world”这样的全局C语句使字符串文字“hello world存储在初始化只读区域，字符指针变量字符串存储在初始化读写区域<br>Example：静态int i=10存储在数据段中，全局int i=10也存储在数据段中</p>
+<blockquote>
+<p>Initialized data segment, usually called simply the Data Segment. A data segment is a portion of virtual address space of a program, which contains the global variables and static variables that are initialized by the programmer.</p>
+<p>Note that, data segment is not read-only, since the values of the variables can be altered at run time.</p>
+<p>This segment can be further classified into initialized read-only area and initialized read-write area.</p>
+<p>For instance the global string defined by char s[] = “hello world” in C and a C statement like int debug=1 outside the main (i.e. global) would be stored in initialized read-write area. And a global C statement like const char* string = “hello world” makes the string literal “hello world” to be stored in initialized read-only area and the character pointer variable string in initialized read-write area.</p>
+<p>Ex: static int i = 10 will be stored in data segment and global int i = 10 will also be stored in data segment</p>
+</blockquote>
+<h4 id="Uninitialized-Data-Segment"><a href="#Uninitialized-Data-Segment" class="headerlink" title="Uninitialized Data Segment"></a>Uninitialized Data Segment</h4><p>未初始化的数据段，通常称为“bss段”，以一个古老的汇编运算符命名，该运算符代表“由该段中的符号数据开始的块”，在程序开始执行之前，内核将其初始化为算术0<br>未初始化的数据从数据段的末尾开始，包含所有初始化为零或在源代码中没有显式初始化的全局变量和静态变量<br>例如，声明为static int i的变量将包含在BSS段中，或者声明为int j的全局变量将包含在BSS段中</p>
+<blockquote>
+<p>Uninitialized data segment, often called the “bss” segment, named after an ancient assembler operator that stood for “block started by symbol.” Data in this segment is initialized by the kernel to arithmetic 0 before the program starts executing</p>
+<p>uninitialized data starts at the end of the data segment and contains all global variables and static variables that are initialized to zero or do not have explicit initialization in source code.</p>
+<p>For instance a variable declared static int i; would be contained in the BSS segment.<br>For instance a global variable declared int j; would be contained in the BSS segment.</p>
+</blockquote>
+<h4 id="Stack"><a href="#Stack" class="headerlink" title="Stack"></a>Stack</h4><p>堆栈区域通常与堆区域相邻，并在堆栈指针遇到堆指针时向相反方向增长，从而耗尽可用内存。（有了现代的大地址空间和虚拟内存技术，它们几乎可以放在任何地方，但它们通常还是朝相反的方向发展。<br>堆栈区包含程序堆栈的后进先出结构，通常位于内存的较高部分。在标准的PC 86计算机体系结构上，它朝着地址零的方向发展，而在其他一些体系结构上，它朝着相反的方向发展。一个“堆栈指针”寄存器跟踪堆栈的顶部：每次将一个值“推送到堆栈上”时都会对其进行调整。为一个函数调用推送的值集称为堆栈帧堆栈帧至少包含一个返回地址<br>堆栈，其中存储自动变量，以及每次调用函数时保存的信息。每次调用一个函数时，要返回到哪里的地址和有关调用者环境的某些信息（例如某些计算机寄存器）都会保存在堆栈中。然后，新调用的函数在堆栈上为其自动和临时变量分配空间。这就是C中递归函数的工作原理。每次递归函数调用自身时，都会使用一个新的堆栈帧，这样一组变量就不会干扰函数另一个实例中的变量</p>
+<blockquote>
+<p>The stack area traditionally adjoined the heap area and grew the opposite direction; when the stack pointer met the heap pointer, free memory was exhausted. (With modern large address spaces and virtual memory techniques they may be placed almost anywhere, but they still typically grow opposite directions.)</p>
+<p>The stack area contains the program stack, a LIFO structure, typically located in the higher parts of memory. On the standard PC x86 computer architecture it grows toward address zero; on some other architectures it grows the opposite direction. A “stack pointer” register tracks the top of the stack; it is adjusted each time a value is “pushed” onto the stack. The set of values pushed for one function call is termed a “stack frame”; A stack frame consists at minimum of a return address.</p>
+<p>Stack, where automatic variables are stored, along with information that is saved each time a function is called. Each time a function is called, the address of where to return to and certain information about the caller’s environment, such as some of the machine registers, are saved on the stack. The newly called function then allocates room on the stack for its automatic and temporary variables. This is how recursive functions in C can work. Each time a recursive function calls itself, a new stack frame is used, so one set of variables doesn’t interfere with the variables from another instance of the function.</p>
+</blockquote>
+<h4 id="Heap"><a href="#Heap" class="headerlink" title="Heap"></a>Heap</h4><p>堆是动态内存分配通常发生的段<br>堆区域从BSS段的末尾开始，并从那里增长到更大的地址。堆区域由malloc、realloc和free管理，后者可以使用brk和sbrk系统调用来调整其大小（注意，使用brk/sbrk和单个堆区域“不需要满足malloc/realloc/free的契约，它们也可以使用mmap来实现，以将虚拟内存中可能不连续的区域保留到进程的虚拟地址空间中）。堆区域由进程中的所有共享库和动态加载的模块共享<br>size(1)命令报告文本、数据和bss段的大小（字节）。（有关详细信息，请参考size(1)的man文档)</p>
+<p>1.可以查看以下简单C程序</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt; </span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span> </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="C:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623103610753.png" alt="image-20200623103610753"></p>
+<p>2.添加一个全局变量，再次检查bss的大小</p>
+<p><font color=red>:( ParrotSec添加int global; bss未发生变化，按理来说应该是<strong>12</strong></font></p>
+<p>3.再添加一个静态变量，也会被存储在bss段</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt; </span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> global; <span class="comment">/* Uninitialized variable stored in bss*/</span></span><br><span class="line"><span class="comment">//ParrotSec添加int global; bss未发生变化，按理来说应该是12</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span> </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">int</span> i; <span class="comment">/*Uninitialized static variable stored in bss*/</span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="C:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623103936264.png" alt="image-20200623103936264"></p>
+<p>4.让我们来初始化这个静态变量看看，注意哈，这时，它将会被放在<strong>Data Segment(DS)数据段</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt; </span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> global; <span class="comment">/* Uninitialized variable stored in bss*/</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span> </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">int</span> i = <span class="number">100</span>; <span class="comment">/* Initialized static variable stored in DS*/</span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="C:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623110357519.png" alt="image-20200623110357519"></p>
+<p>问题：</p>
+<p>这是在centos上编译出来的效果</p>
+<p><img src="C:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623110617166.png" alt="image-20200623110617166"></p>
+<p><font color=purple><strong>Q:</strong> 对同一个程序，为什么不同的机器上会出现size不同的情况？</font></p>
+<p>size</p>
+<ul>
+<li>text  –  Actual machine instructions that your CPU going to execute. Linux allows to share this data.</li>
+<li>data  –  All initialized variables (declarations) declared in a program (e.g., float salary=123.45;).</li>
+<li>bss – The BSS consists of uninitialized data such as arrays that you have not set any values to or null pointers.</li>
+</ul>
+<h2 id="处理器的栈帧布局"><a href="#处理器的栈帧布局" class="headerlink" title="处理器的栈帧布局"></a>处理器的栈帧布局</h2><p>在函数调用内存分配期间隐式构造的堆栈帧。显式地，可以分别使用malloc（）、calloc（）、realloc（）、new、free（）和delete从堆区域请求内存分配并释放到堆区域。堆栈帧的典型布局如下所示，尽管在不同的操作系统中可能会有不同的组织：</p>
+<ul>
+<li>Function parameters.</li>
+<li>Function’s return address.</li>
+<li>Frame pointer.</li>
+<li>Exception Handler frame.</li>
+<li>Locally declared variables.</li>
+<li>Buffer.</li>
+<li>Callee save registers.</li>
+</ul>
+<p>堆栈中的排列如下图所示。</p>
+<p>![Typical illustration of a stack layout during the function call](D:\图书馆\visio绘图\Typical illustration of a stack layout during the function call.png)</p>
+<p>从布局中可以清楚地看到，缓冲区溢出（如果发生）有机会覆盖在高于缓冲区的内存地址分配的其他变量，即本地声明的变量、异常处理程序帧、帧指针、返回地址和函数参数。我们稍后会详细研究这些问题。<br>作为Windows/Intel中的一个例子，通常在函数调用发生时，数据元素以以下方式存储在堆栈上：</p>
+<ol>
+<li>函数参数在调用函数之前被push到堆栈上。参数从右向左push。</li>
+<li>函数返回地址由x86 CALL指令放在堆栈上，该指令存储EIP寄存器的当前值。</li>
+<li>然后，作为EBP寄存器的前一个值的帧指针被放在堆栈上。</li>
+<li>如果函数包含try/catch或任何其他异常处理构造，例如SEH（Structured Exception Handling -Microsoft实现），编译器将在堆栈中包含异常处理信息。</li>
+<li>接下来是局部声明的变量。</li>
+<li>然后将缓冲区分配给临时数据存储。</li>
+<li>最后，如果在函数执行期间的任何时候使用被调用者保存寄存器（如ESI、EDI和EBX），则会存储这些寄存器。对于Linux/Intel，这一步是在第4步之后。</li>
+</ol>
+<p>处理器的栈操作：</p>
+<p>有两个CPU寄存器对堆栈的运行非常重要，它们保存调用内存中的数据时所需的信息。他们的名字是32位系统中的ESP和EBP。ESP（扩展堆栈指针）保存顶部堆栈地址。ESP可以直接或间接修改。<font color=blue>直接：使用直接操作</font>，例如（Windows/Intel）：</p>
+<blockquote>
+<p>There are two CPU registers that are important for the functioning of the stack which hold information that is necessary when calling data residing in the memory. Their names are ESP and EBP in 32 bits system. The ESP (Extended Stack Pointer) holds the top stack address.  ESP is modifiable either directly or indirectly. Directly: by using direct operations for example (Windows/Intel):</p>
+</blockquote>
+<p><strong><u>ESP： Extended Stack Pointer保存top栈地址</u></strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">add esp, 0Ch</span><br></pre></td></tr></table></figure>
+
+<p>此指令导致堆栈收缩12个字节。以及</p>
+<blockquote>
+<p>This instruction causes the stack to shrink by 12 bytes.  And</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sub esp, 0Ch</span><br></pre></td></tr></table></figure>
+
+<p>这会导致堆栈增加12个字节。（请记住，这可能会让人感到困惑。事实上，ESP值越大，堆栈的大小就越小，反之亦然，因为堆栈在内存中会随着其变大而向下增长，反之亦然）。</p>
+<p><img src="C:%5CUsers%5CZeroX%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200623143312038.png" alt="image-20200623143312038"></p>
+<p><font color=blue>间接地：通过使用PUSH将数据元素添加到堆栈或使用POP stack操作从堆栈中移除数据元素</font>。例如：</p>
+<blockquote>
+<p>That causes the stack to grow by 12 bytes.  (Keep in mind that it may seem confusing.  In fact, the bigger the ESP value, the smaller the stack size and vice versa because the stack grows downwards in memory as it gets bigger and vice versa).</p>
+<p>Indirectly: by adding data elements to the stack with PUSH or removing data elements from the stack with POP stack operation.  For example:</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">push   ebp    ; Save ebp, put it on the stack</span><br><span class="line">pop    ebp    ; Restore ebp, remove it from the stack</span><br></pre></td></tr></table></figure>
+
+<p>除了指向堆栈顶部（较低的数字地址）的堆栈指针之外，通常还可以使用堆栈帧指针（FP），它保存指向帧内固定位置的地址。在堆栈帧中，可以通过给出本地变量相对于ESP的偏移量来引用它们。但是，随着数据被推到堆栈上并从堆栈中弹出，这些偏移量会发生变化，因此本地变量的引用不一致。因此，许多编译器使用另一个寄存器（通常称为帧指针（FP））来引用局部变量和参数，因为它们与FP的距离不会随push和pop而改变。在英特尔CPU上，EBP（扩展基指针）用于此目的。在Motorola CPU上，除了A7（堆栈指针）之外的任何地址寄存器都可以。由于堆栈的增长方式，实际参数的偏移量为正，而局部变量的偏移量为负，如下所示。让我们检查一下下面的简单C程序。</p>
+<blockquote>
+<p>In addition to the stack pointer, which points to the top of the stack (lower numerical address); it is often convenient to have a stack frame pointer (FP) which holds an address that point to a fixed location within a frame. Looking at the stack frame, local variables could be referenced by giving their offsets from ESP. However, as data are pushed onto the stack and popped off the stack, these offsets change, so the reference of the local variables is not consistent. Consequently, many compilers use another register, generally called Frame Pointer (FP), for referencing both local variables and parameters because their distances from FP do not change with PUSHes and POPs. On Intel CPUs, EBP (Extended Base Pointer) is used for this purpose. On the Motorola CPUs, any address register except A7 (the stack pointer) will do. Because the way stack grows, actual parameters have positive offsets and local variables have negative offsets from FP as shown below. Let examine the following simple C program.</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">MyFunc</span><span class="params">(<span class="keyword">int</span> parameter1, <span class="keyword">char</span> parameter2)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> local1 = <span class="number">9</span>;</span><br><span class="line">    <span class="keyword">char</span> local2 = ‘Z’;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	MyFunc(<span class="number">7</span>, ‘<span class="number">8</span>’);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<img src="D:\图书馆\visio绘图\Function call memory layout.png" alt="Function call: The memory layout." style="zoom:80%;" />
+
+
+
+<p>EBP寄存器是<strong>指向堆栈底部的静态寄存器</strong>。堆栈的底部位于固定地址。更准确地说，EBP寄存器包含堆栈底部的地址，作为相对于执行的函数的偏移量。根据函数的任务，堆栈大小在运行时由内核动态调整。每次调用新函数时，EBP的旧值首先被推送到堆栈上，然后ESP的新值被移到EBP。EBP持有的ESP的这个新值成为检索为新函数调用分配的堆栈部分所需的局部变量的引用基。如前所述，堆栈向下扩展到较低的内存地址。这是许多计算机（包括英特尔、摩托罗拉、SPARC和MIPS处理器）的堆栈增长方式。堆栈指针（ESP）在堆栈上的最后一个地址不是堆栈顶部之后的下一个可用地址。</p>
+<p>ESP(Extended Stack Pointer)：指向<strong>栈顶</strong>指针</p>
+<p>EBP(Extended Base Pointer)：基址指针寄存器。永远指向系统栈最上面一个栈帧的底部。指向当前指针</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%86%85%E5%AD%98/" rel="tag"># 内存</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/04/10/%E5%88%9D%E8%AF%86syslog/" rel="prev" title="初识syslog">
+      <i class="fa fa-chevron-left"></i> 初识syslog
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/25/%E7%AE%97%E6%B3%95%E7%AB%9E%E8%B5%9B%E5%85%A5%E9%97%A8%E7%BB%8F%E5%85%B8-%E7%AC%AC2%E7%89%88-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-%E4%B8%80/" rel="next" title="算法竞赛入门经典(第2版) 读书笔记(一)">
+      算法竞赛入门经典(第2版) 读书笔记(一) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Memory-Layout-of-C-Programs"><span class="nav-number">1.</span> <span class="nav-text">Memory Layout of C Programs</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Text-segment"><span class="nav-number">1.0.0.1.</span> <span class="nav-text">Text segment</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Initialized-Data-Segment"><span class="nav-number">1.0.0.2.</span> <span class="nav-text">Initialized Data Segment</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Uninitialized-Data-Segment"><span class="nav-number">1.0.0.3.</span> <span class="nav-text">Uninitialized Data Segment</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Stack"><span class="nav-number">1.0.0.4.</span> <span class="nav-text">Stack</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Heap"><span class="nav-number">1.0.0.5.</span> <span class="nav-text">Heap</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#处理器的栈帧布局"><span class="nav-number">1.1.</span> <span class="nav-text">处理器的栈帧布局</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">ZeroX</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">ZeroX</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
